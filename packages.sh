@@ -47,6 +47,38 @@ yay -S --needed --noconfirm herdr-bin
 echo "installing github desktop..."
 yay -S --needed --noconfirm github-desktop-bin
 
+if command -v gh >/dev/null 2>&1; then
+  echo "github cli already installed"
+else
+  echo "installing github cli..."
+  omarchy-mise-install gh
+fi
+
+SSH_KEY="$HOME/.ssh/id_ed25519"
+
+if [ -f "$SSH_KEY" ]; then
+  echo "ssh key already exists"
+else
+  echo "creating the ssh key..."
+  mkdir -p "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+  ssh-keygen -t ed25519 -f "$SSH_KEY"
+fi
+
+if gh auth status --hostname github.com >/dev/null 2>&1; then
+  echo "github cli already logged in"
+else
+  echo "logging in to github..."
+  gh auth login --hostname github.com --git-protocol ssh --web --skip-ssh-key --scopes admin:public_key
+fi
+
+if gh ssh-key list 2>/dev/null | grep -Fq "$(cut -d' ' -f2 "$SSH_KEY.pub")"; then
+  echo "ssh key already on github"
+else
+  echo "adding the ssh key to github..."
+  gh ssh-key add "$SSH_KEY.pub" --title "$(hostname)"
+fi
+
 if command -v hod >/dev/null 2>&1; then
   echo "hod already installed"
 else
