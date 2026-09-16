@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -euo pipefail
+
+scheme="$HOME/.local/state/omarchy/current/theme/sublime-text.sublime-color-scheme"
+target="$HOME/.config/sublime-text/Packages/User/Omarchy.sublime-color-scheme"
+
+[[ -f $scheme ]] || exit 0
+
+mkdir -p "$(dirname "$target")"
+cp "$scheme" "$target"

@@ -1,6 +1,10 @@
 {
     "installed_packages":
     [
-        "GitHub Theme"
-    ]
+        "Package Control",
+    ],
+    "bootstrapped": true,
+    "in_process_packages":
+    [
+    ],
 }

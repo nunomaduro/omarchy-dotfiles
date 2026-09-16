@@ -18,6 +18,12 @@ sudo tee /etc/firefox/policies/policies.json >/dev/null <<'POLICIES'
 {
   "policies": {
     "IPProtectionAvailable": false,
+    "ExtensionSettings": {
+      "pywalfox@frewacom.org": {
+        "installation_mode": "force_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/pywalfox/latest.xpi"
+      }
+    },
     "Preferences": {
       "identity.fxaccounts.toolbar.enabled": {
         "Value": false,
@@ -32,6 +38,9 @@ sudo tee /etc/firefox/policies/policies.json >/dev/null <<'POLICIES'
 }
 POLICIES
 
+echo "installing pywalfox..."
+yay -S --needed --noconfirm python-pywalfox
+
 echo "installing herdr..."
 yay -S --needed --noconfirm herdr-bin
 
@@ -43,16 +52,6 @@ if command -v hod >/dev/null 2>&1; then
 else
   echo "installing hod..."
   curl -fsSL https://github.com/hodstack/hodstack/releases/latest/download/install.sh | sh
-fi
-
-echo "installing lerd prerequisites..."
-sudo pacman -S --needed --noconfirm crun nss
-
-if command -v lerd >/dev/null 2>&1; then
-  echo "lerd already installed"
-else
-  echo "installing lerd..."
-  curl -fsSL https://lerd.sh/install.sh | bash
 fi
 
 if command -v claude >/dev/null 2>&1; then
@@ -145,33 +144,6 @@ else
     'https://packagecontrol.io/Package%20Control.sublime-package'
 fi
 
-GITHUB_THEME_VERSION="3.0.6"
-
-if [ "$(jq -r '.version' "$SUBLIME_PACKAGES/GitHub Theme/package-metadata.json" 2>/dev/null)" = "$GITHUB_THEME_VERSION" ]; then
-  echo "github theme $GITHUB_THEME_VERSION already installed"
-else
-  echo "installing github theme $GITHUB_THEME_VERSION..."
-  tmp="$(mktemp -d)"
-  curl -fsSL -o "$tmp/github-theme.zip" \
-    "https://codeload.github.com/mauroreisvieira/github-sublime-theme/zip/4070-$GITHUB_THEME_VERSION"
-  unzip -q "$tmp/github-theme.zip" -d "$tmp/extract"
-
-  rm -rf "$SUBLIME_PACKAGES/GitHub Theme"
-  mkdir -p "$SUBLIME_PACKAGES"
-  mv "$tmp/extract/github-sublime-theme-4070-$GITHUB_THEME_VERSION" "$SUBLIME_PACKAGES/GitHub Theme"
-  rm -rf "$tmp"
-
-  cat > "$SUBLIME_PACKAGES/GitHub Theme/package-metadata.json" <<METADATA
-{
-  "version": "$GITHUB_THEME_VERSION",
-  "sublime_text": ">=4070",
-  "platforms": ["*"],
-  "url": "https://github.com/mauroreisvieira/github-sublime-theme",
-  "description": "GitHub's Sublime Text themes"
-}
-METADATA
-fi
-
 FONT="GeistMono Nerd Font"
 
 if fc-list : family | grep -Fq "$FONT"; then
@@ -190,4 +162,9 @@ fi
 if command -v omarchy >/dev/null 2>&1 && [ "$(omarchy font current 2>/dev/null)" != "$FONT" ]; then
   echo "setting $FONT as the system monospace font..."
   omarchy font set "$FONT"
+fi
+
+if command -v omarchy >/dev/null 2>&1; then
+  echo "applying the omarchy theme to firefox and sublime text..."
+  omarchy theme set "$(omarchy theme current)"
 fi

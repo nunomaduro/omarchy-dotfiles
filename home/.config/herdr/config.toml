@@ -1,0 +1,6 @@
+[theme]
+name = "catppuccin-latte"
+auto_switch = false
+
+[theme.custom]
+panel_bg = "black"

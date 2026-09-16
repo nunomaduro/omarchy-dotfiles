@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+theme="$HOME/.local/state/omarchy/current/theme"
+mode="$(omarchy-theme-color --file "$theme/colors.toml" mode dark)"
+colors="$theme/pywalfox-$mode.json"
+
+[[ -f $colors ]] || exit 0
+
+mkdir -p "$HOME/.cache/wal"
+cp "$colors" "$HOME/.cache/wal/colors.json"
+
+command -v pywalfox >/dev/null 2>&1 || exit 0
+
+pywalfox "$mode" >/dev/null
+pywalfox update >/dev/null

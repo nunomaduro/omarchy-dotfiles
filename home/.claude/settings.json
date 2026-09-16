@@ -2,6 +2,24 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/nunomaduro/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "jq -r '\"\\(.model.display_name) · \\(.context_window.used_percentage // 0 | floor)% context\"'"
+  },
   "voice": {
     "enabled": true,
     "mode": "hold"
