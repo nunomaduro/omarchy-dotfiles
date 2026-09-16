@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "voiceEnabled": true
+}

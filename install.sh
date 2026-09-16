@@ -14,3 +14,7 @@ find "$DOTFILES/home" -type f -print0 | while IFS= read -r -d '' src; do
 done
 
 "$DOTFILES/packages.sh"
+
+echo
+echo "the dotfiles are installed"
+echo "open a new terminal to load the shell aliases and the prompt"

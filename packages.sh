@@ -12,12 +12,25 @@ else
   env -u BROWSER xdg-settings set default-web-browser firefox.desktop
 fi
 
-if command -v zed >/dev/null 2>&1; then
-  echo "zed already installed"
-else
-  echo "installing zed..."
-  curl -fsSL https://zed.dev/install.sh | sh
-fi
+echo "writing the firefox policies..."
+sudo mkdir -p /etc/firefox/policies
+sudo tee /etc/firefox/policies/policies.json >/dev/null <<'POLICIES'
+{
+  "policies": {
+    "IPProtectionAvailable": false,
+    "Preferences": {
+      "identity.fxaccounts.toolbar.enabled": {
+        "Value": false,
+        "Status": "locked"
+      },
+      "extensions.unifiedExtensions.button.always_visible": {
+        "Value": false,
+        "Status": "locked"
+      }
+    }
+  }
+}
+POLICIES
 
 echo "installing herdr..."
 yay -S --needed --noconfirm herdr-bin
@@ -101,6 +114,62 @@ Terminal=false
 StartupWMClass=jetbrains-phpstorm
 StartupNotify=true
 EOF
+fi
+
+if pacman -Q sublime-text >/dev/null 2>&1; then
+  echo "sublime text already installed"
+else
+  echo "installing sublime text..."
+  tmp="$(mktemp -d)"
+  curl -fsSL -o "$tmp/sublimehq-pub.gpg" https://download.sublimetext.com/sublimehq-pub.gpg
+  sudo pacman-key --add "$tmp/sublimehq-pub.gpg"
+  sudo pacman-key --lsign-key 8A8F901A
+  rm -rf "$tmp"
+
+  if ! grep -q "^\\[sublime-text\\]" /etc/pacman.conf; then
+    printf '\n[sublime-text]\nServer = https://download.sublimetext.com/arch/stable/aarch64\n' | sudo tee -a /etc/pacman.conf >/dev/null
+  fi
+
+  sudo pacman -Sy --needed --noconfirm sublime-text
+fi
+
+SUBLIME_INSTALLED="$HOME/.config/sublime-text/Installed Packages"
+SUBLIME_PACKAGES="$HOME/.config/sublime-text/Packages"
+
+if [ -f "$SUBLIME_INSTALLED/Package Control.sublime-package" ]; then
+  echo "package control already installed"
+else
+  echo "installing package control..."
+  mkdir -p "$SUBLIME_INSTALLED"
+  curl -fsSL -o "$SUBLIME_INSTALLED/Package Control.sublime-package" \
+    'https://packagecontrol.io/Package%20Control.sublime-package'
+fi
+
+GITHUB_THEME_VERSION="3.0.6"
+
+if [ "$(jq -r '.version' "$SUBLIME_PACKAGES/GitHub Theme/package-metadata.json" 2>/dev/null)" = "$GITHUB_THEME_VERSION" ]; then
+  echo "github theme $GITHUB_THEME_VERSION already installed"
+else
+  echo "installing github theme $GITHUB_THEME_VERSION..."
+  tmp="$(mktemp -d)"
+  curl -fsSL -o "$tmp/github-theme.zip" \
+    "https://codeload.github.com/mauroreisvieira/github-sublime-theme/zip/4070-$GITHUB_THEME_VERSION"
+  unzip -q "$tmp/github-theme.zip" -d "$tmp/extract"
+
+  rm -rf "$SUBLIME_PACKAGES/GitHub Theme"
+  mkdir -p "$SUBLIME_PACKAGES"
+  mv "$tmp/extract/github-sublime-theme-4070-$GITHUB_THEME_VERSION" "$SUBLIME_PACKAGES/GitHub Theme"
+  rm -rf "$tmp"
+
+  cat > "$SUBLIME_PACKAGES/GitHub Theme/package-metadata.json" <<METADATA
+{
+  "version": "$GITHUB_THEME_VERSION",
+  "sublime_text": ">=4070",
+  "platforms": ["*"],
+  "url": "https://github.com/mauroreisvieira/github-sublime-theme",
+  "description": "GitHub's Sublime Text themes"
+}
+METADATA
 fi
 
 FONT="GeistMono Nerd Font"

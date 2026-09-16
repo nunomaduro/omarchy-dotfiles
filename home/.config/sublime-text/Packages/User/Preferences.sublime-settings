@@ -1,0 +1,35 @@
+{
+    "caret_style": "phase",
+    "color_scheme": "GitHub Light.sublime-color-scheme",
+    "ensure_newline_at_eof_on_save": true,
+    "findreplace_small": true,
+    "font_face": "GeistMono Nerd Font",
+    "font_options":
+    [
+        "subpixel_antialias",
+        "bold",
+        "gray_antialias"
+    ],
+    "font_size": 26,
+    "highlight_line": false,
+    "hot_exit": false,
+    "ignored_packages":
+    [
+        "Vintage"
+    ],
+    "index_files": true,
+    "line_numbers": true,
+    "line_padding_bottom": 25,
+    "line_padding_top": 25,
+    "remember_open_files": false,
+    "save_on_focus_lost": true,
+    "show_definitions": false,
+    "show_panel_on_build": false,
+    "sidebar_on_right": false,
+    "tab_size": 4,
+    "tabs_small": false,
+    "theme": "GitHub Light.sublime-theme",
+    "translate_tabs_to_spaces": true,
+    "trim_trailing_white_space_on_save": true,
+    "word_wrap": false
+}
