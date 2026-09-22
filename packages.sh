@@ -2,6 +2,43 @@
 
 set -euo pipefail
 
+echo "lowercasing the home folders..."
+for entry in DOWNLOAD:downloads DOCUMENTS:documents MUSIC:music PICTURES:pictures VIDEOS:videos PROJECTS:projects DESKTOP: TEMPLATES: PUBLICSHARE:; do
+  key="${entry%%:*}"
+  target="$HOME/${entry#*:}"
+  current="$(xdg-user-dir "$key")"
+  current="${current%/}"
+  target="${target%/}"
+
+  if [ "$current" != "$target" ] && [ "$current" != "$HOME" ] && [ -d "$current" ]; then
+    if [ "$target" = "$HOME" ]; then
+      rmdir "$current" 2>/dev/null || echo "keeping $current because it is not empty"
+    elif [ -e "$target" ]; then
+      rmdir "$current" 2>/dev/null || echo "keeping $current because $target already exists"
+    else
+      mv "$current" "$target"
+    fi
+  fi
+
+  mkdir -p "$target"
+  xdg-user-dirs-update --set "$key" "$target"
+done
+
+echo "lowercasing the file manager bookmarks..."
+bookmarks="$HOME/.config/gtk-3.0/bookmarks"
+if [ -f "$bookmarks" ]; then
+  for folder in downloads documents music pictures videos projects; do
+    sed -i -E "s|^file://$HOME/$folder( .*)?$|file://$HOME/$folder|I" "$bookmarks"
+  done
+fi
+
+if grep -Eq '^-(auth|password) .*pam_gnome_keyring\.so' /etc/pam.d/sddm; then
+  echo "stopping the sddm password login from creating a login keyring..."
+  sudo sed -i '/-auth.*pam_gnome_keyring\.so/d; /-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
+else
+  echo "sddm password login already creates no login keyring"
+fi
+
 echo "installing firefox..."
 sudo pacman -S --needed --noconfirm firefox
 
@@ -47,6 +84,16 @@ yay -S --needed --noconfirm herdr-bin
 echo "installing github desktop..."
 yay -S --needed --noconfirm github-desktop-bin
 
+echo "installing docker..."
+sudo pacman -S --needed --noconfirm docker docker-buildx docker-compose lazydocker
+
+if systemctl is-enabled docker.socket >/dev/null 2>&1; then
+  echo "docker socket already enabled"
+else
+  echo "enabling the docker socket..."
+  sudo systemctl enable --now docker.socket
+fi
+
 if command -v gh >/dev/null 2>&1; then
   echo "github cli already installed"
 else
@@ -65,6 +112,13 @@ else
   ssh-keygen -t ed25519 -f "$SSH_KEY"
 fi
 
+if systemctl --user is-enabled ssh-agent.socket >/dev/null 2>&1; then
+  echo "ssh agent already enabled"
+else
+  echo "enabling the ssh agent..."
+  systemctl --user enable --now ssh-agent.socket
+fi
+
 if gh auth status --hostname github.com >/dev/null 2>&1; then
   echo "github cli already logged in"
 else
@@ -76,7 +130,7 @@ if gh ssh-key list 2>/dev/null | grep -Fq "$(cut -d' ' -f2 "$SSH_KEY.pub")"; the
   echo "ssh key already on github"
 else
   echo "adding the ssh key to github..."
-  gh ssh-key add "$SSH_KEY.pub" --title "$(hostname)"
+  gh ssh-key add "$SSH_KEY.pub" --title "$(uname -n)"
 fi
 
 if command -v hod >/dev/null 2>&1; then
@@ -101,6 +155,21 @@ else
   git clone --quiet https://aur.archlinux.org/claude-desktop.git "$tmp/claude-desktop"
   (cd "$tmp/claude-desktop" && makepkg -si --noconfirm)
   rm -rf "$tmp"
+fi
+
+if mise where php >/dev/null 2>&1 && mise where node >/dev/null 2>&1; then
+  echo "php and node already installed"
+else
+  echo "installing php and node..."
+  mise install php node
+fi
+
+if [ -x "$HOME/.local/bin/laravel" ]; then
+  echo "laravel installer already installed"
+else
+  echo "installing the laravel installer..."
+  mise x php -- composer global config bin-dir "$HOME/.local/bin"
+  mise x php -- composer global require laravel/installer
 fi
 
 PHPSTORM_HOME="$HOME/.local/phpstorm"
@@ -197,6 +266,6 @@ if command -v omarchy >/dev/null 2>&1 && [ "$(omarchy font current 2>/dev/null)"
 fi
 
 if command -v omarchy >/dev/null 2>&1; then
-  echo "applying the omarchy theme to firefox and sublime text..."
+  echo "applying the omarchy theme to firefox, sublime text and phpstorm..."
   omarchy theme set "$(omarchy theme current)"
 fi

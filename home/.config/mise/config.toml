@@ -1,0 +1,16 @@
+[tools]
+claude = "latest"
+codex = "latest"
+gh = "latest"
+node = "latest"
+opencode = "latest"
+php = "8.5"
+
+[settings]
+minimum_release_age = "24h"
+
+[settings.upgrade]
+auto_prune = false
+
+[tool_alias]
+php = "github:nunomaduro/static-php-builds"

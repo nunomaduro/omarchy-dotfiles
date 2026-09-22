@@ -1,0 +1,369 @@
+#!/bin/bash
+
+set -euo pipefail
+
+phpstorm_home="$HOME/.local/phpstorm"
+colors="$HOME/.local/state/omarchy/current/theme/colors.toml"
+
+[[ -f $phpstorm_home/product-info.json ]] || exit 0
+[[ -f $colors ]] || exit 0
+
+data_directory="$(jq -r .dataDirectoryName "$phpstorm_home/product-info.json")"
+plugin_jar="$HOME/.local/share/JetBrains/$data_directory/omarchy-theme/lib/omarchy-theme.jar"
+options="$HOME/.config/JetBrains/$data_directory/options"
+
+python3 - "$phpstorm_home" "$plugin_jar" "$(omarchy-theme-color --file "$colors" --all)" <<'PY'
+import copy
+import glob
+import io
+import json
+import os
+import re
+import sys
+import zipfile
+import xml.etree.ElementTree as ET
+
+phpstorm_home, plugin_jar, theme_colors = sys.argv[1:4]
+
+omarchy = dict(line.rstrip("\n").split("\t", 1) for line in theme_colors.splitlines() if "\t" in line)
+dark = omarchy.get("mode", "dark") != "light"
+
+
+def rgb(value):
+    value = value.lstrip("#")
+    return tuple(int(value[index:index + 2], 16) for index in (0, 2, 4))
+
+
+def hex_of(color):
+    return "".join(f"{round(max(0, min(255, channel))):02X}" for channel in color)
+
+
+def mix(start, end, amount):
+    amount = max(0.0, min(1.0, amount))
+    return tuple(a + (b - a) * amount for a, b in zip(start, end))
+
+
+def distance(start, end):
+    return sum((a - b) ** 2 for a, b in zip(start, end)) ** 0.5
+
+
+def project(color, start, end):
+    span = [b - a for a, b in zip(start, end)]
+    length = sum(part * part for part in span)
+    if length == 0:
+        return 0.0
+    return sum((c - a) * s for c, a, s in zip(color, start, span)) / length
+
+
+def translate(color, source_start, source_end, target_start, target_end):
+    position = project(color, source_start, source_end)
+    toward_text = (255, 255, 255) if dark else (0, 0, 0)
+    toward_depth = (0, 0, 0) if dark else (255, 255, 255)
+    if position < 0:
+        reach = -position * distance(target_start, target_end)
+        return mix(target_start, toward_depth, reach / max(1.0, distance(target_start, toward_depth)))
+    if position > 1:
+        reach = (position - 1) * distance(target_start, target_end)
+        return mix(target_end, toward_text, reach / max(1.0, distance(target_end, toward_text)))
+    return mix(target_start, target_end, position)
+
+
+def read_jars():
+    descriptors, files = [], {}
+    for jar in glob.glob(f"{phpstorm_home}/lib/**/*.jar", recursive=True) + glob.glob(f"{phpstorm_home}/plugins/**/*.jar", recursive=True):
+        try:
+            archive = zipfile.ZipFile(jar)
+        except (zipfile.BadZipFile, OSError):
+            continue
+        for name in archive.namelist():
+            if name.endswith(".xml") and "/" not in name.removeprefix("META-INF/"):
+                content = archive.read(name)
+                if b"themeProvider" in content or b"ColorScheme" in content or b"additionalTextAttributes" in content:
+                    descriptors.append((archive, content.decode("utf-8", "replace")))
+            if name == "DefaultColorSchemesManager.xml":
+                files[name] = archive.read(name)
+    return descriptors, files
+
+
+descriptors, files = read_jars()
+
+
+def read_from(archive, path):
+    path = path.lstrip("/")
+    for candidate in (path, f"{path}.xml"):
+        try:
+            return archive.read(candidate)
+        except KeyError:
+            continue
+    return None
+
+
+def find_theme(theme_id):
+    for archive, content in descriptors:
+        match = re.search(rf'<themeProvider\s+id="{re.escape(theme_id)}"\s+path="([^"]+)"', content)
+        data = read_from(archive, match.group(1)) if match else None
+        if data:
+            return json.loads(data)
+    raise SystemExit(f"phpstorm has no theme {theme_id}")
+
+
+def scheme_root(name):
+    for archive, content in descriptors:
+        match = re.search(rf'<bundledColorScheme\s+id="{re.escape(name)}"\s+path="([^"]+)"', content)
+        data = read_from(archive, match.group(1)) if match else None
+        if data:
+            return ET.fromstring(data)
+    manager = ET.fromstring(files["DefaultColorSchemesManager.xml"])
+    for scheme in manager.iter("scheme"):
+        if scheme.get("name") == name:
+            return scheme
+    return None
+
+
+def additional_roots(name):
+    for archive, content in descriptors:
+        for match in re.finditer(rf'<additionalTextAttributes\s+scheme="{re.escape(name)}"\s+file="([^"]+)"', content):
+            data = read_from(archive, match.group(1))
+            if data:
+                yield ET.fromstring(data)
+
+
+def merge_scheme(root, colors, attributes):
+    for section in root.iter("colors"):
+        for option in section.findall("option"):
+            colors[option.get("name")] = option.get("value", "")
+    containers = list(root.iter("attributes"))
+    if root.tag == "list":
+        containers.append(root)
+    for section in containers:
+        for option in section.findall("option"):
+            if option.get("name"):
+                attributes[option.get("name")] = copy.deepcopy(option)
+
+
+def load_scheme(name, colors, attributes, seen):
+    root = scheme_root(name)
+    if root is None or name in seen:
+        return
+    seen.add(name)
+    if root.get("parent_scheme"):
+        load_scheme(root.get("parent_scheme"), colors, attributes, seen)
+    merge_scheme(root, colors, attributes)
+    for extra in additional_roots(name):
+        merge_scheme(extra, colors, attributes)
+
+
+source_theme = find_theme("Islands Dark" if dark else "Islands Light")
+palette = source_theme["colors"]
+
+
+def resolve(value, depth=0):
+    while value in palette and depth < 20:
+        value = palette[value]
+        depth += 1
+    return value
+
+
+ramp = re.compile(r"^(gray|blue|green|red|yellow|orange|purple|teal)-(\d+)$")
+hues = {
+    "gray": "foreground",
+    "blue": "accent",
+    "green": "green",
+    "red": "red",
+    "yellow": "yellow",
+    "orange": "orange",
+    "purple": "magenta",
+    "teal": "cyan",
+}
+
+source_background = rgb(resolve("editor-bg"))
+source_text = rgb(resolve("text-default"))
+background = rgb(omarchy["background"])
+foreground = rgb(omarchy["foreground"])
+
+primitives = {}
+for name, value in palette.items():
+    match = ramp.match(name)
+    if match:
+        primitives[name] = (match.group(1), rgb(value))
+for name in ("white", "black"):
+    primitives[name] = ("gray", rgb(palette[name]))
+
+remapped = {}
+for name, (hue, color) in primitives.items():
+    if hue == "gray":
+        remapped[name] = translate(color, source_background, source_text, background, foreground)
+    else:
+        base = rgb(palette[f"{hue}-100"])
+        remapped[name] = translate(color, source_background, base, background, rgb(omarchy[hues[hue]]))
+
+
+def nearest(color):
+    return min(primitives, key=lambda name: distance(primitives[name][1], color))
+
+
+def remap_hex(value):
+    body = value.lstrip("#")
+    if not re.fullmatch(r"[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", body):
+        return value
+    alpha = body[6:]
+    return ("#" if value.startswith("#") else "") + hex_of(remapped[nearest(rgb(body[:6]))]) + alpha
+
+
+theme = copy.deepcopy(source_theme)
+theme["name"] = "Omarchy"
+theme["author"] = "Omarchy"
+theme["parentTheme"] = "Islands Dark" if dark else "Islands Light"
+theme["editorScheme"] = "/omarchy.xml"
+for name, value in theme["colors"].items():
+    if name in remapped:
+        theme["colors"][name] = "#" + hex_of(remapped[name])
+    elif isinstance(value, str) and value.startswith("#") and value not in ("#FFFFFF", "#000000") and not name.startswith("transparent-"):
+        theme["colors"][name] = remap_hex(value)
+theme["colors"]["transparent"] = "#" + hex_of(background) + "00"
+theme["colors"]["editor-text"] = omarchy["foreground"]
+theme["colors"]["search-match-bg"] = omarchy["yellow"]
+
+scheme_colors, scheme_attributes = {}, {}
+load_scheme(source_theme["editorScheme"], scheme_colors, scheme_attributes, set())
+
+for name, value in scheme_colors.items():
+    scheme_colors[name] = remap_hex(value)
+for option in scheme_attributes.values():
+    for node in option.iter("option"):
+        for key in ("value", "deuteranopia", "protanopia"):
+            if node.get(key) and node.get("name") in ("FOREGROUND", "BACKGROUND", "EFFECT_COLOR", "ERROR_STRIPE_COLOR"):
+                node.set(key, remap_hex(node.get(key)))
+
+
+def plain(key):
+    return omarchy[key].lstrip("#").upper()
+
+
+scheme_colors.update({
+    "CARET_COLOR": plain("accent"),
+    "CARET_ROW_COLOR": plain("lighter_background"),
+    "CONSOLE_BACKGROUND_KEY": plain("background"),
+    "GUTTER_BACKGROUND": plain("background"),
+    "LINE_NUMBERS_COLOR": plain("muted"),
+    "LINE_NUMBER_ON_CARET_ROW_COLOR": plain("foreground"),
+    "INDENT_GUIDE": plain("lighter_background"),
+    "SELECTED_INDENT_GUIDE": plain("muted"),
+    "WHITESPACES": plain("muted"),
+    "SELECTION_BACKGROUND": plain("selection"),
+    "SELECTION_FOREGROUND": "",
+    "ADDED_LINES_COLOR": plain("green"),
+    "MODIFIED_LINES_COLOR": plain("yellow"),
+    "DELETED_LINES_COLOR": plain("red"),
+})
+
+plain_text, italic, bold = "0", "2", "1"
+syntax = {
+    "TEXT": ("foreground", plain_text),
+    "DEFAULT_IDENTIFIER": ("foreground", plain_text),
+    "DEFAULT_LOCAL_VARIABLE": ("foreground", plain_text),
+    "DEFAULT_LINE_COMMENT": ("muted", italic),
+    "DEFAULT_BLOCK_COMMENT": ("muted", italic),
+    "DEFAULT_DOC_COMMENT": ("muted", italic),
+    "DEFAULT_STRING": ("green", plain_text),
+    "DEFAULT_VALID_STRING_ESCAPE": ("cyan", plain_text),
+    "DEFAULT_NUMBER": ("orange", plain_text),
+    "DEFAULT_CONSTANT": ("orange", plain_text),
+    "DEFAULT_KEYWORD": ("magenta", plain_text),
+    "DEFAULT_OPERATION_SIGN": ("cyan", plain_text),
+    "DEFAULT_DOT": ("cyan", plain_text),
+    "DEFAULT_COMMA": ("foreground", plain_text),
+    "DEFAULT_SEMICOLON": ("foreground", plain_text),
+    "DEFAULT_BRACES": ("foreground", plain_text),
+    "DEFAULT_BRACKETS": ("foreground", plain_text),
+    "DEFAULT_PARENTHS": ("foreground", plain_text),
+    "DEFAULT_FUNCTION_DECLARATION": ("blue", plain_text),
+    "DEFAULT_FUNCTION_CALL": ("blue", plain_text),
+    "DEFAULT_INSTANCE_METHOD": ("blue", plain_text),
+    "DEFAULT_STATIC_METHOD": ("blue", plain_text),
+    "DEFAULT_CLASS_NAME": ("yellow", plain_text),
+    "DEFAULT_CLASS_REFERENCE": ("yellow", plain_text),
+    "DEFAULT_INTERFACE_NAME": ("yellow", plain_text),
+    "DEFAULT_PARAMETER": ("red", plain_text),
+    "DEFAULT_INSTANCE_FIELD": ("cyan", plain_text),
+    "DEFAULT_STATIC_FIELD": ("cyan", plain_text),
+    "DEFAULT_METADATA": ("yellow", plain_text),
+    "DEFAULT_TAG": ("blue", plain_text),
+    "DEFAULT_ATTRIBUTE": ("yellow", plain_text),
+    "HTML_TAG_NAME": ("blue", plain_text),
+    "HTML_ATTRIBUTE_NAME": ("yellow", plain_text),
+    "XML_TAG_NAME": ("blue", plain_text),
+    "XML_ATTRIBUTE_NAME": ("yellow", plain_text),
+    "PHP_VAR": ("foreground", plain_text),
+    "PHP_PARAMETER": ("red", plain_text),
+    "PHP_CONSTANT": ("orange", plain_text),
+    "PHP_NAMED_ARGUMENT": ("cyan", plain_text),
+    "MARKDOWN_HEADER_LEVEL_1": ("accent", bold),
+    "MARKDOWN_HEADER_LEVEL_2": ("accent", bold),
+    "MARKDOWN_HEADER_LEVEL_3": ("accent", bold),
+    "MARKDOWN_HEADER_LEVEL_4": ("accent", bold),
+    "MARKDOWN_HEADER_LEVEL_5": ("accent", bold),
+    "MARKDOWN_HEADER_LEVEL_6": ("accent", bold),
+}
+
+for name, (color, font_type) in syntax.items():
+    option = ET.Element("option", name=name)
+    value = ET.SubElement(option, "value")
+    ET.SubElement(value, "option", name="FOREGROUND", value=plain(color))
+    if name == "TEXT":
+        ET.SubElement(value, "option", name="BACKGROUND", value=plain("background"))
+    if font_type != plain_text:
+        ET.SubElement(value, "option", name="FONT_TYPE", value=font_type)
+    scheme_attributes[name] = option
+
+scheme = ET.Element("scheme", name="Omarchy", version="142", parent_scheme="Darcula" if dark else "Default")
+colors_section = ET.SubElement(scheme, "colors")
+for name in sorted(scheme_colors):
+    ET.SubElement(colors_section, "option", name=name, value=scheme_colors[name])
+attributes_section = ET.SubElement(scheme, "attributes")
+for name in sorted(scheme_attributes):
+    attributes_section.append(scheme_attributes[name])
+ET.indent(scheme)
+
+descriptor = """<idea-plugin>
+  <id>org.omarchy.theme</id>
+  <name>Omarchy</name>
+  <version>1.0.0</version>
+  <vendor>Omarchy</vendor>
+  <description>The colors of the current Omarchy theme.</description>
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <themeProvider id="omarchy" path="/omarchy.theme.json" targetUi="islands"/>
+  </extensions>
+</idea-plugin>
+"""
+
+os.makedirs(os.path.dirname(plugin_jar), exist_ok=True)
+buffer = io.BytesIO()
+with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+    archive.writestr("META-INF/plugin.xml", descriptor)
+    archive.writestr("omarchy.theme.json", json.dumps(theme, indent=2))
+    archive.writestr("omarchy.xml", ET.tostring(scheme, encoding="unicode"))
+temporary = f"{plugin_jar}.tmp"
+with open(temporary, "wb") as output:
+    output.write(buffer.getvalue())
+os.replace(temporary, plugin_jar)
+PY
+
+pgrep -f "$phpstorm_home/bin/phpstorm" >/dev/null && exit 0
+
+mkdir -p "$options"
+cat > "$options/laf.xml" <<'XML'
+<application>
+  <component name="LafManager" autodetect="false">
+    <laf themeId="omarchy" />
+  </component>
+</application>
+XML
+cat > "$options/colors.scheme.xml" <<'XML'
+<application>
+  <component name="EditorColorsManagerImpl">
+    <global_color_scheme name="Omarchy" />
+  </component>
+</application>
+XML

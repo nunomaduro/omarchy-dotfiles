@@ -1,0 +1,16 @@
+<application>
+  <component name="CodeVisionSettings">
+    <option name="enabled" value="false" />
+  </component>
+  <component name="EditorSettings">
+    <option name="SHOW_INSPECTION_WIDGET" value="false" />
+    <option name="SHOW_INTENTION_BULB" value="false" />
+    <option name="IS_RIGHT_MARGIN_SHOWN" value="false" />
+    <option name="ARE_GUTTER_ICONS_SHOWN" value="false" />
+    <option name="IS_FOLDING_OUTLINE_SHOWN" value="false" />
+    <option name="SHOW_BREADCRUMBS" value="false" />
+    <option name="SHOW_STICKY_LINES" value="false" />
+    <option name="IS_INDENT_GUIDES_SHOWN" value="false" />
+    <option name="SHOW_PARAMETER_NAME_HINTS" value="false" />
+  </component>
+</application>

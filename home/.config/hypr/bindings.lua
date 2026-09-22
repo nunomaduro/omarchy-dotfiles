@@ -60,7 +60,6 @@ local command_letters = {
   { "P", "Print" },
   { "R", "Reload" },
   { "S", "Save" },
-  { "T", "New tab" },
   { "U", "Underline" },
   { "W", "Close tab" },
   { "Z", "Undo" },
@@ -69,6 +68,15 @@ local command_letters = {
 for _, letter in ipairs(command_letters) do
   mac_shortcut("SUPER + " .. letter[1], "Mac " .. letter[2], { { "CTRL", letter[1] } }, { { "CTRL SHIFT", letter[1] } })
 end
+
+hl.unbind("SUPER + T")
+o.bind("SUPER + T", "Mac New tab, or new terminal in a terminal", function()
+  if active_window_is_terminal() then
+    hl.exec_cmd("omarchy-launch-terminal")
+  else
+    send_chords({ { "CTRL", "T" } })
+  end
+end)
 
 same_everywhere("SUPER + A", "Mac Select all", { { "CTRL", "A" } })
 same_everywhere("SUPER + SHIFT + Z", "Mac Redo", { { "CTRL SHIFT", "Z" } })

@@ -14,4 +14,6 @@ source "$OMARCHY_PATH/default/bash/rc"
 # alias p='python'
 
 
-alias w='cd ~/Work'
+alias w='cd ~/work'
+alias d='cd ~/work/projects/nunomaduro/omarchy-dotfiles'
+alias u='~/work/projects/nunomaduro/omarchy-dotfiles/upgrade.sh'
