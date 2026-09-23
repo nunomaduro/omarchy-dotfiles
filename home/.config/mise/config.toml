@@ -4,7 +4,7 @@ codex = "latest"
 gh = "latest"
 node = "latest"
 opencode = "latest"
-php = "8.5"
+php = "latest"
 
 [settings]
 minimum_release_age = "24h"

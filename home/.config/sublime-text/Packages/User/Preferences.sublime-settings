@@ -10,7 +10,7 @@
         "bold",
         "gray_antialias"
     ],
-    "font_size": 11,
+    "font_size": 8,
     "highlight_line": false,
     "hot_exit": false,
     "ignored_packages":
