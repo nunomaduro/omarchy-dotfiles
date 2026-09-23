@@ -32,6 +32,9 @@ echo "updating hod..."
 echo "updating the laravel installer..."
 composer global update
 
+echo "updating rust..."
+"$HOME/.cargo/bin/rustup" update
+
 omarchy update
 
 echo "deleting the tool versions that no configuration file names..."

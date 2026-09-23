@@ -17,3 +17,4 @@ source "$OMARCHY_PATH/default/bash/rc"
 alias w='cd ~/work'
 alias d='cd ~/work/projects/nunomaduro/omarchy-dotfiles'
 alias u='~/work/projects/nunomaduro/omarchy-dotfiles/upgrade.sh'
+. "$HOME/.cargo/env"

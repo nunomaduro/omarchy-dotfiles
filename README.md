@@ -25,7 +25,7 @@ Open a new terminal. The machine is ready.
 ./upgrade.sh
 ```
 
-The alias `u` runs it from any folder. It pulls this repository, runs `install.sh` again for a file or an application that the repository gained, then updates what `omarchy update` does not reach: PhpStorm, `hod` and the Laravel installer. It ends with `omarchy update` for the system packages, the AUR packages and the mise tools, and with `mise prune` for each tool version that no configuration file names.
+The alias `u` runs it from any folder. It pulls this repository, runs `install.sh` again for a file or an application that the repository gained, then updates what `omarchy update` does not reach: PhpStorm, `hod`, the Laravel installer and Rust. It ends with `omarchy update` for the system packages, the AUR packages and the mise tools, and with `mise prune` for each tool version that no configuration file names.
 
 ## What you get
 
@@ -79,12 +79,20 @@ Docker, Buildx, Compose and lazydocker are installed, and the Docker socket star
 
 ### PHP and Laravel
 
-PHP, Composer and Node.js come from [mise](https://mise.jdx.dev), and the PHP builds come from [static-php-builds](https://github.com/nunomaduro/static-php-builds). The Laravel installer lands in `~/.local/bin`.
+`omarchy install dev-env laravel` installs PHP, Composer, Node.js and the Laravel installer. PHP and Node.js come from [mise](https://mise.jdx.dev), the PHP builds come from [static-php-builds](https://github.com/nunomaduro/static-php-builds), and the Laravel installer lands in `~/.local/bin`.
 
 ```
 mise use php@8.4           # PHP 8.4 for this folder only
 mise use --global php@8.5  # PHP 8.5 everywhere else
 laravel new myproject
+```
+
+### Rust
+
+`omarchy install dev-env rust` installs Rust with rustup, in `~/.cargo`.
+
+```
+cargo new myproject
 ```
 
 ### Editors

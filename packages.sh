@@ -157,19 +157,18 @@ else
   rm -rf "$tmp"
 fi
 
-if mise where php >/dev/null 2>&1 && mise where node >/dev/null 2>&1; then
-  echo "php and node already installed"
+if mise where php >/dev/null 2>&1 && mise where node >/dev/null 2>&1 && [ -x "$HOME/.local/bin/laravel" ]; then
+  echo "php, node and the laravel installer already installed"
 else
-  echo "installing php and node..."
-  mise install php node
+  echo "installing php, node and the laravel installer..."
+  omarchy-install-dev-env laravel
 fi
 
-if [ -x "$HOME/.local/bin/laravel" ]; then
-  echo "laravel installer already installed"
+if [ -x "$HOME/.cargo/bin/rustup" ]; then
+  echo "rust already installed"
 else
-  echo "installing the laravel installer..."
-  mise x php -- composer global config bin-dir "$HOME/.local/bin"
-  mise x php -- composer global require laravel/installer
+  echo "installing rust..."
+  omarchy-install-dev-env rust
 fi
 
 PHPSTORM_HOME="$HOME/.local/phpstorm"
