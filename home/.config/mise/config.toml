@@ -5,6 +5,7 @@ gh = "latest"
 node = "latest"
 opencode = "latest"
 php = "latest"
+pi = "latest"
 
 [settings]
 minimum_release_age = "24h"
