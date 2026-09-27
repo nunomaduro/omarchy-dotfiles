@@ -1,6 +1,6 @@
 {
     "caret_style": "phase",
-    "color_scheme": "Omarchy.sublime-color-scheme",
+    "color_scheme": "GitHub Light High Contrast.sublime-color-scheme",
     "ensure_newline_at_eof_on_save": true,
     "findreplace_small": true,
     "font_face": "GeistMono Nerd Font",
@@ -10,7 +10,7 @@
         "bold",
         "gray_antialias"
     ],
-    "font_size": 8,
+    "font_size": 16,
     "highlight_line": false,
     "hot_exit": false,
     "ignored_packages":
@@ -28,7 +28,7 @@
     "sidebar_on_right": false,
     "tab_size": 4,
     "tabs_small": false,
-    "theme": "Adaptive.sublime-theme",
+    "theme": "GitHub Light High Contrast.sublime-theme",
     "translate_tabs_to_spaces": true,
     "trim_trailing_white_space_on_save": true,
     "word_wrap": false,
