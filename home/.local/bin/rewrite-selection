@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -euo pipefail
+
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+
+text="$(wl-paste --primary --no-newline 2>/dev/null || true)"
+
+if [[ -z ${text//[[:space:]]/} ]]; then
+  omarchy-notification-send -g 󰏫 "Rewrite" "Select some text first."
+  exit 1
+fi
+
+names=()
+
+while IFS= read -r line; do
+  [[ $line == *:* ]] && names+=("${line%%:*}")
+done < "$HOME/.config/rewrite-selection/tones"
+
+choice="$(omarchy-menu-select "Rewrite" "${names[@]}" "Custom tone")" || exit 0
+
+if [[ $choice == "Custom tone" ]]; then
+  tone="$(omarchy-menu-input "Tone")" || exit 0
+  instruction="Rewrite the text in this tone: $tone."
+else
+  instruction="$choice"
+fi
+
+notification="$(omarchy-notification-send -p -g 󰏫 "Rewriting" "$choice")"
+
+rewritten="$(printf '%s' "$text" | rewrite-text "$instruction")"
+
+printf '%s' "$rewritten" | wl-copy
+
+if hyprctl activewindow -j | jq -e '.tags // [] | map(sub("\\*$"; "")) | index("terminal")' >/dev/null; then
+  omarchy-notification-send -r "$notification" -g 󰏫 "Rewritten" "The text is on the clipboard." -t 3000
+else
+  wtype -M ctrl v -m ctrl
+  omarchy-notification-send -r "$notification" -g 󰏫 "Rewritten" "$choice" -t 2000
+fi

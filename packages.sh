@@ -171,6 +171,19 @@ else
   omarchy-install-dev-env rust
 fi
 
+if command -v voxtype >/dev/null 2>&1; then
+  echo "voxtype already installed"
+else
+  echo "installing voxtype..."
+  omarchy-pkg-add wtype voxtype-bin
+  voxtype setup --download --no-post-install
+  if omarchy-hw-vulkan; then
+    voxtype setup gpu --enable || true
+  fi
+  voxtype setup systemd
+  hyprctl reload >/dev/null
+fi
+
 PHPSTORM_HOME="$HOME/.local/phpstorm"
 
 if [ -x "$PHPSTORM_HOME/bin/phpstorm" ]; then

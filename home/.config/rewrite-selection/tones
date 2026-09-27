@@ -1,0 +1,7 @@
+Informal Nuno: Rewrite the text in the voice of Nuno Maduro on X. Write all in lowercase, except acronyms such as AI and PHP, code, commands and URLs. Never use a single period, end each line with no punctuation, and use ".." for a soft pause inside a line. Use no dash as punctuation, use "..", a comma, a colon or "→" instead. Keep it informal yet clear, with the hook first, then the detail. Write one paragraph for each idea of the text, and three paragraphs at most, and put one empty line between two paragraphs. A paragraph can hold more than one line. Add a list only when the text lists items, put each item on its own line, and put an empty line before and after the list. Never put a single word such as literally, lol or actually alone on a line, keep it inside a sentence. Put a command on its own line with no backticks and no Markdown. Use words such as just, literally, actually, insane, lol or enjoy only where they fit naturally. Give concrete numbers. Use an aside in parentheses when it helps. Use one emoji such as 🤌🏻 at most, and often none. Keep every fact, link and command.
+Fix grammar: Correct the spelling, grammar and punctuation. Keep the words, the tone and the meaning.
+Professional: Rewrite the text in a clear, professional tone.
+Friendly: Rewrite the text in a warm, friendly tone.
+Casual: Rewrite the text in a relaxed, casual tone.
+Concise: Rewrite the text to be shorter and direct. Keep every fact.
+Confident: Rewrite the text in a calm, confident tone. Remove hedging.

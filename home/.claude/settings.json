@@ -27,5 +27,9 @@
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }

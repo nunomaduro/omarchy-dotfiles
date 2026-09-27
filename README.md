@@ -95,6 +95,18 @@ laravel new myproject
 cargo new myproject
 ```
 
+### Dictation
+
+`omarchy voxtype install` installs [Voxtype](https://github.com/peteonrails/voxtype), which turns your speech into text on this machine. Hold `Super + <`, speak, and let go: Claude rewrites what you said in the Informal Nuno tone, and the text lands where the cursor is. Hold `F9` for the words exactly as you said them, and press `Super + Ctrl + X` to start and stop a longer dictation. `Space` stays with Claude Code and its own voice mode.
+
+Select text in any app and press `Super + Shift + R` to rewrite it. Pick a tone, or fix the grammar, and Claude replaces the selection. In a terminal, the result lands on the clipboard.
+
+Add your own tone to [`home/.config/rewrite-selection/tones`](home/.config/rewrite-selection/tones), one per line, as a name and an instruction:
+
+```
+Pirate: Rewrite the text the way a pirate talks.
+```
+
 ### Editors
 
 - **PhpStorm** is downloaded for ARM64, checked against its checksum, and added to the app launcher. It opens with the file tree and the code, and nothing else: no toolbar, no status bar, no tabs, no tool window buttons.

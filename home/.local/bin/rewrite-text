@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -euo pipefail
+
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+
+if (( $# != 1 )); then
+  echo "Usage: rewrite-text <tone or instruction> < text" >&2
+  exit 1
+fi
+
+tones_file="$HOME/.config/rewrite-selection/tones"
+instruction="$(grep -m1 -F "$1:" "$tones_file" | grep "^$1:" | cut -d: -f2- || true)"
+
+if [[ -z $instruction ]]; then
+  instruction="$1"
+fi
+
+text="$(cat)"
+
+if [[ -z ${text//[[:space:]]/} ]]; then
+  exit 0
+fi
+
+claude -p \
+  --model opus \
+  --tools "" \
+  --setting-sources "" \
+  --no-session-persistence \
+  --system-prompt "You rewrite text. $instruction Keep the language of the text. Add no fact, claim, example or sentence that the text does not hold, and do not expand the text: a short text stays short. Reply with the rewritten text only, with no preamble, no quotes and no explanation." \
+  "$text" </dev/null

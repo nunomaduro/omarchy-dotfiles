@@ -112,3 +112,10 @@ same_everywhere("ALT + SHIFT + LEFT", "Mac Select word left", { { "CTRL SHIFT", 
 same_everywhere("ALT + SHIFT + RIGHT", "Mac Select word right", { { "CTRL SHIFT", "Right" } })
 mac_shortcut("ALT + BACKSPACE", "Mac Delete word left", { { "CTRL", "BackSpace" } }, { { "CTRL", "W" } })
 mac_shortcut("ALT + DELETE", "Mac Delete word right", { { "CTRL", "Delete" } }, { { "ALT", "D" } })
+
+o.bind("SUPER + SHIFT + R", "Rewrite selected text", os.getenv("HOME") .. "/.local/bin/rewrite-selection")
+
+if o.cmd_present("voxtype") then
+  o.bind("SUPER + less", "Hold to dictate in Informal Nuno", "voxtype record start --profile nuno --shift-enter-newlines")
+  o.bind("SUPER + less", "Stop dictation", "voxtype record stop", { release = true, ignore_mods = true })
+end

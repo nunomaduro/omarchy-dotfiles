@@ -14,7 +14,8 @@ source "$OMARCHY_PATH/default/bash/rc"
 # alias p='python'
 
 
-alias w='cd ~/work'
-alias d='cd ~/work/projects/nunomaduro/omarchy-dotfiles'
-alias u='~/work/projects/nunomaduro/omarchy-dotfiles/upgrade.sh'
+alias w='cd ~/projects'
+alias d='cd ~/projects/nunomaduro/omarchy-dotfiles'
+alias u='~/projects/nunomaduro/omarchy-dotfiles/upgrade.sh'
 . "$HOME/.cargo/env"
+export PATH="$HOME/.config/composer/vendor/bin:$PATH"
